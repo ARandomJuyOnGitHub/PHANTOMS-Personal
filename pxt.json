@@ -25,7 +25,6 @@
         "arcade-background-scroll": "github:microsoft/arcade-background-scroll#v0.1.2"
     },
     "files": [
-        "main.blocks",
         "main.ts",
         "README.md",
         "assets.json",
@@ -41,14 +40,14 @@
         "branch": "v1.12.49",
         "tag": "v1.12.49",
         "commits": "https://github.com/microsoft/pxt-arcade/commits/8b39eda27ca91b27b57fc1f30c6b3b33d3fc2029",
-        "target": "1.12.56",
+        "target": "2.0.53",
         "pxt": "8.5.60",
         "targetId": "arcade"
     },
     "supportedTargets": [
         "arcade"
     ],
-    "preferredEditor": "blocksprj",
+    "preferredEditor": "tsprj",
     "palette": [
         "#000000",
         "#C4F0EF",
