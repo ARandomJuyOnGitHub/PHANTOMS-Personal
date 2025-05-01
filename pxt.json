@@ -1,5 +1,5 @@
 {
-    "name": "PHANTOMS V.3.3",
+    "name": "PHANTOMS-Personal V.0.0.0",
     "description": "",
     "dependencies": {
         "device": "*",
@@ -22,7 +22,8 @@
         "Stats": "github:UnsignedArduino/Stats#758e35856bd5565e5d0e25c95cccfac79b7fc168",
         "arcade-tile-util": "github:microsoft/arcade-tile-util#v1.2.0",
         "pxt-scaling": "github:jwunderl/pxt-scaling#v0.1.0",
-        "arcade-background-scroll": "github:microsoft/arcade-background-scroll#v0.1.2"
+        "arcade-background-scroll": "github:microsoft/arcade-background-scroll#v0.1.2",
+        "Vector2 Extension": "github:ARandomJuyOnGitHub/pxt-Vector2#v1.1.1"
     },
     "files": [
         "main.ts",
