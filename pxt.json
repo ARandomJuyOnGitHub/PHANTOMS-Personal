@@ -1,5 +1,5 @@
 {
-    "name": "PHANTOMS-Personal V.0.0.0",
+    "name": "PHANTOMS-Personal V.0.1.0",
     "description": "",
     "dependencies": {
         "device": "*",
@@ -32,7 +32,8 @@
         "tilemap.g.jres",
         "tilemap.g.ts",
         "images.g.jres",
-        "images.g.ts"
+        "images.g.ts",
+        "PhysicsController.ts"
     ],
     "testFiles": [
         "test.ts"
@@ -41,7 +42,7 @@
         "branch": "v1.12.49",
         "tag": "v1.12.49",
         "commits": "https://github.com/microsoft/pxt-arcade/commits/8b39eda27ca91b27b57fc1f30c6b3b33d3fc2029",
-        "target": "2.0.53",
+        "target": "2.0.56",
         "pxt": "8.5.60",
         "targetId": "arcade"
     },
