@@ -29,6 +29,7 @@ class CharacterController {
 
 class Player extends CharacterController {
     private movementSpeed: number = 100
+    private xMovementVelocity: number = 0
     private facingDirection: number = -1
 
     private jumpPower: number = 200
@@ -41,6 +42,7 @@ class Player extends CharacterController {
     private wallSlidingSpeed: number = 40
 
     private isWallJumping: boolean = false
+    private isWallJumpFalling: boolean = false
     private lastWallJumped: number = 0
     private wallJumpingDirection: number = 0
     private wallJumpingCooldown: number = 0.4
@@ -65,19 +67,15 @@ class Player extends CharacterController {
             this.flip()
 
             if (this.grounded) {
+                this.isWallJumpFalling = false
                 this.sprite.fx = 1000
             } else {
                 this.sprite.fx = 50
             }
 
-            if (this.isWallJumping) {
-                this.movementSpeed = 0
-            } else {
-                this.movementSpeed = 100
+            if (!this.isWallJumping) {
+                this.movementInit()
             }
-
-            // allows for changeable player speed
-            controller.player1.moveSprite(this.sprite, this.movementSpeed, 0)
 
             //wall movement logic
             this.wallSlide()
@@ -95,6 +93,35 @@ class Player extends CharacterController {
                 this.sprite.vy += 1 * this.physics.gravitationalForce * (this.shortfall - 1) * control.eventContext().deltaTime
             }
         })
+    }
+
+    movementInit() {
+        let rightMovement = 0
+        let leftMovement = 0
+
+        if (controller.right.isPressed()) {
+            this.isWallJumpFalling = false
+            rightMovement = 1
+        } else {
+            rightMovement = 0
+        }
+
+        if (controller.left.isPressed()) {
+            this.isWallJumpFalling = false
+            leftMovement = -1
+        } else {
+            leftMovement = 0
+        }
+
+        let trueMovement = rightMovement + leftMovement
+        if (!this.isWallJumpFalling) {
+            this.sprite.vx = trueMovement * this.movementSpeed
+        }
+        
+    }
+
+    jump() {
+        this.physics.force(vectors.create(0, -this.jumpPower))
     }
 
     isWalled() {
@@ -127,7 +154,9 @@ class Player extends CharacterController {
 
         if (controller.up.isPressed() && this.wallJumpingDebounce > 0) {
             this.isWallJumping = true
+            this.isWallJumpFalling = true
             this.jumpHeld = false // prevents the player from flying away
+
             this.lastWallJumped = this.againstWall
             this.sprite.setVelocity(this.wallJumpingDirection * this.wallJumpingPower.x, this.wallJumpingPower.y)
             this.wallJumpingDebounce = 0
@@ -141,10 +170,6 @@ class Player extends CharacterController {
 
     stopWallJumping() {
         this.isWallJumping = false
-    }
-
-    jump() {
-        this.physics.force(vectors.create(0, -this.jumpPower))
     }
 
     flip() {
