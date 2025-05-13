@@ -1,5 +1,5 @@
 {
-    "name": "PHANTOMS-Personal V.0.1.0",
+    "name": "PHANTOMS-Personal V.0.3.0",
     "description": "",
     "dependencies": {
         "device": "*",
@@ -33,7 +33,8 @@
         "tilemap.g.ts",
         "images.g.jres",
         "images.g.ts",
-        "PhysicsController.ts"
+        "PhysicsController.ts",
+        "CharacterController.ts"
     ],
     "testFiles": [
         "test.ts"
