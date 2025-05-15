@@ -43,9 +43,11 @@ class Player extends CharacterController {
 
     private isWallJumping: boolean = false
     private isWallJumpFalling: boolean = false
+    private rightWallLimit: number = 3
+    private leftWallLimit: number = 3
     private lastWallJumped: number = 0
     private wallJumpingDirection: number = 0
-    private wallJumpingCooldown: number = 0.4
+    private wallJumpingCooldown: number = 850
     private wallJumpingDebounce: number = 0
     private wallJumpingPower: Vector2 = vectors.create(80, -330)
 
@@ -64,7 +66,11 @@ class Player extends CharacterController {
         })
 
         game.onUpdate(function () {
-            this.flip()
+            console.log(this.againstWall)
+
+            if (!this.isWallJumping) {
+                this.flip()
+            }
 
             if (this.grounded) {
                 this.isWallJumpFalling = false
@@ -125,23 +131,26 @@ class Player extends CharacterController {
     }
 
     isWalled() {
-        return (this.againstWall != 0)
+        if (this.againstWall == 1 && controller.right.isPressed()) {
+            return true
+        } else if (this.againstWall == -1 && controller.left.isPressed()) {
+            return true
+        } else {
+            return false
+        }
     }
 
     wallSlide() {
         if (this.isWalled() && (!this.grounded)) {
             this.isWallSliding = true
             this.sprite.setVelocity(this.sprite.vx, Math.constrain(this.sprite.vy, 0, this.wallSlidingSpeed))
+            if (this.facingDirection != this.againstWall) {
+                this.flip()
+            }
         } else {
             this.isWallSliding = false
         }
     }
-
-    /**
-     * new wall jumping idea:
-     * when you wall jump there is a cool down but only for that specific wall
-     * 
-     */
 
     wallJump() {
         if (this.isWallSliding) {
@@ -152,7 +161,7 @@ class Player extends CharacterController {
             this.wallJumpingDebounce -= control.eventContext().deltaTime
         }
 
-        if (controller.up.isPressed() && this.wallJumpingDebounce > 0) {
+        if (controller.up.isPressed() && this.wallJumpingDebounce > 0 && this.isWallSliding) {
             this.isWallJumping = true
             this.isWallJumpFalling = true
             this.jumpHeld = false // prevents the player from flying away
@@ -160,7 +169,9 @@ class Player extends CharacterController {
             this.lastWallJumped = this.againstWall
             this.sprite.setVelocity(this.wallJumpingDirection * this.wallJumpingPower.x, this.wallJumpingPower.y)
             this.wallJumpingDebounce = 0
-
+            if (this.facingDirection != this.wallJumpingDirection) {
+                this.flip()
+            }
 
             timer.after(200, function () {
                 this.isWallJumping = false

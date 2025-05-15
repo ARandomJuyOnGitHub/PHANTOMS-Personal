@@ -1,18 +1,29 @@
-let playerSprite = sprites.create(assets.image`Normal Enemy`)
-scene.cameraFollowSprite(playerSprite)
-
-let player = new Player(playerSprite)
-
-tiles.setCurrentTilemap(tilemap`level12`)
-tiles.placeOnRandomTile(playerSprite, assets.tile`Start`)
-// playerSprite.setPosition(playerSprite.x, 0)
-tileUtil.replaceAllTiles(assets.tile`Start`, assets.tile`transparency16`)
-
-function pillars_background() {
-    scroller.scrollBackgroundWithCamera(scroller.CameraScrollMode.BothDirections, scroller.BackgroundLayer.Layer0)
-    scroller.scrollBackgroundWithCamera(scroller.CameraScrollMode.BothDirections, scroller.BackgroundLayer.Layer1)
-    scroller.scrollBackgroundWithCamera(scroller.CameraScrollMode.BothDirections, scroller.BackgroundLayer.Layer2)
-    scene.setBackgroundImage(img`
+playerSprite = sprites.create(assets.image("""
+    Normal Enemy
+    """))
+scene.camera_follow_sprite(playerSprite)
+player = Player(playerSprite)
+tiles.set_current_tilemap(tilemap("""
+    level12
+    """))
+tiles.place_on_random_tile(playerSprite, assets.tile("""
+    Start
+    """))
+playerSprite.set_position(playerSprite.x, 0)
+tileUtil.replace_all_tiles(assets.tile("""
+        Start
+        """),
+    assets.tile("""
+        transparency16
+        """))
+def pillars_background():
+    scroller.scroll_background_with_camera(scroller.CameraScrollMode.BOTH_DIRECTIONS,
+        scroller.BackgroundLayer.LAYER0)
+    scroller.scroll_background_with_camera(scroller.CameraScrollMode.BOTH_DIRECTIONS,
+        scroller.BackgroundLayer.LAYER1)
+    scroller.scroll_background_with_camera(scroller.CameraScrollMode.BOTH_DIRECTIONS,
+        scroller.BackgroundLayer.LAYER2)
+    scene.set_background_image(img("""
         1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
         1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
         1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
@@ -133,13 +144,20 @@ function pillars_background() {
         1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
         1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
         1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
-        `)
-    scroller.setLayerImage(scroller.BackgroundLayer.Layer0, assets.image`back0`)
-    scroller.setLayerImage(scroller.BackgroundLayer.Layer1, assets.image`back`)
-    scroller.setLayerImage(scroller.BackgroundLayer.Layer2, assets.image`2`)
-    scroller.setCameraScrollingMultipliers(0.25, 0.25, scroller.BackgroundLayer.Layer0)
-    scroller.setCameraScrollingMultipliers(0.5, 0.5, scroller.BackgroundLayer.Layer1)
-    scroller.setCameraScrollingMultipliers(0.7, 0.7, scroller.BackgroundLayer.Layer2)
-}
-
+        """))
+    scroller.set_layer_image(scroller.BackgroundLayer.LAYER0,
+        assets.image("""
+            back0
+            """))
+    scroller.set_layer_image(scroller.BackgroundLayer.LAYER1,
+        assets.image("""
+            back
+            """))
+    scroller.set_layer_image(scroller.BackgroundLayer.LAYER2,
+        assets.image("""
+            2
+            """))
+    scroller.set_camera_scrolling_multipliers(0.25, 0.25, scroller.BackgroundLayer.LAYER0)
+    scroller.set_camera_scrolling_multipliers(0.5, 0.5, scroller.BackgroundLayer.LAYER1)
+    scroller.set_camera_scrolling_multipliers(0.7, 0.7, scroller.BackgroundLayer.LAYER2)
 pillars_background()

@@ -1,5 +1,5 @@
 {
-    "name": "PHANTOMS-Personal V.0.3.1",
+    "name": "PHANTOMS-Personal V.0.3.3",
     "description": "",
     "dependencies": {
         "device": "*",
@@ -34,7 +34,8 @@
         "images.g.jres",
         "images.g.ts",
         "PhysicsController.ts",
-        "CharacterController.ts"
+        "CharacterController.ts",
+        "main.py"
     ],
     "testFiles": [
         "test.ts"
