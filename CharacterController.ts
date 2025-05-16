@@ -47,8 +47,9 @@ class Player extends CharacterController {
     private leftWallLimit: number = 3
     private lastWallJumped: number = 0
     private wallJumpingDirection: number = 0
-    private wallJumpingCooldown: number = 850
+    private wallJumpingCooldown: number = .6 // in seconds
     private wallJumpingDebounce: number = 0
+    private wallJumpingTimer: number = 200 // in milliseconds
     private wallJumpingPower: Vector2 = vectors.create(80, -330)
 
     constructor(_sprite: Sprite) {
@@ -67,12 +68,18 @@ class Player extends CharacterController {
 
         game.onUpdate(function () {
             console.log(this.againstWall)
+            
+            if (this.isWallJumpFalling && this.againstWall) {
+                this.isWallJumping = false
+            }
 
             if (!this.isWallJumping) {
                 this.flip()
             }
 
             if (this.grounded) {
+                this.rightWallLimit = 3
+                this.leftWallLimit = 3
                 this.isWallJumpFalling = false
                 this.sprite.fx = 1000
             } else {
@@ -98,6 +105,8 @@ class Player extends CharacterController {
             } else if (!this.jumpHeld && this.sprite.vy < 0) {
                 this.sprite.vy += 1 * this.physics.gravitationalForce * (this.shortfall - 1) * control.eventContext().deltaTime
             }
+
+            this.debounce()
         })
     }
 
@@ -156,24 +165,32 @@ class Player extends CharacterController {
         if (this.isWallSliding) {
             this.isWallJumping = false
             this.wallJumpingDirection = -this.againstWall
-            this.wallJumpingDebounce = this.wallJumpingCooldown
-        } else {
-            this.wallJumpingDebounce -= control.eventContext().deltaTime
         }
 
-        if (controller.up.isPressed() && this.wallJumpingDebounce > 0 && this.isWallSliding) {
+        if (controller.up.isPressed() && this.isWallSliding) {
+            // if your jumping from the same wall and the cool down isn't over do nothing
+            if ((this.lastWallJumped == this.againstWall) && this.wallJumpingDebounce > 0) {return}
+
+            // if the limmit for hte current wall ahs been reached do nothing
+            if ((this.againstWall == 1 && this.rightWallLimit <= 0) || (this.againstWall == -1 && this.leftWallLimit <= 0)) {return}
+
             this.isWallJumping = true
             this.isWallJumpFalling = true
             this.jumpHeld = false // prevents the player from flying away
 
+            if (this.againstWall == 1) {
+                this.rightWallLimit -= 1
+            } else if (this.againstWall == -1) {
+                this.leftWallLimit -= 1
+            }
             this.lastWallJumped = this.againstWall
             this.sprite.setVelocity(this.wallJumpingDirection * this.wallJumpingPower.x, this.wallJumpingPower.y)
-            this.wallJumpingDebounce = 0
+            this.wallJumpingDebounce = this.wallJumpingCooldown
             if (this.facingDirection != this.wallJumpingDirection) {
                 this.flip()
             }
 
-            timer.after(200, function () {
+            timer.after(this.wallJumpingTimer, function () {
                 this.isWallJumping = false
             })
         }
@@ -189,5 +206,9 @@ class Player extends CharacterController {
             this.sprite.image.flipX()
             this.facingDirection = -this.facingDirection
         }
+    }
+
+    debounce() {
+        this.wallJumpingDebounce -= control.eventContext().deltaTime
     }
 }
