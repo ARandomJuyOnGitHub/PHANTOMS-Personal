@@ -169,6 +169,11 @@
         "mimeType": "image/x-mkcd-f4",
         "displayName": "2"
     },
+    "image27": {
+        "data": "hwQQABAAAAAzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMw==",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "PlayerChar"
+    },
     "anim11": {
         "namespace": "myAnimations",
         "id": "anim11",

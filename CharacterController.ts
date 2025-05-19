@@ -41,6 +41,7 @@ class Player extends CharacterController {
     private isWallSliding: boolean = false
     private wallSlidingSpeed: number = 40
 
+    private attemptWallJump: boolean = false
     private isWallJumping: boolean = false
     private isWallJumpFalling: boolean = false
     private rightWallLimit: number = 3
@@ -59,6 +60,8 @@ class Player extends CharacterController {
             if (this.grounded) {
                 this.jumping = true
                 this.jumpHeld = true
+            } else if (this.isWallSliding) {
+                this.attemptWallJump = true
             }
 
         })
@@ -167,12 +170,12 @@ class Player extends CharacterController {
             this.wallJumpingDirection = -this.againstWall
         }
 
-        if (controller.up.isPressed() && this.isWallSliding) {
+        if (this.attemptWallJump) {
             // if your jumping from the same wall and the cool down isn't over do nothing
-            if ((this.lastWallJumped == this.againstWall) && this.wallJumpingDebounce > 0) {return}
+            if ((this.lastWallJumped == this.againstWall) && this.wallJumpingDebounce > 0) {this.attemptWallJump = false; return}
 
             // if the limmit for hte current wall ahs been reached do nothing
-            if ((this.againstWall == 1 && this.rightWallLimit <= 0) || (this.againstWall == -1 && this.leftWallLimit <= 0)) {return}
+            if ((this.againstWall == 1 && this.rightWallLimit <= 0) || (this.againstWall == -1 && this.leftWallLimit <= 0)) {this.attemptWallJump = false; return}
 
             this.isWallJumping = true
             this.isWallJumpFalling = true
@@ -193,6 +196,8 @@ class Player extends CharacterController {
             timer.after(this.wallJumpingTimer, function () {
                 this.isWallJumping = false
             })
+
+            this.attemptWallJump = false
         }
     }
 
