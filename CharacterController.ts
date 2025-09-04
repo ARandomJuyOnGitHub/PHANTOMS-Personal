@@ -41,6 +41,9 @@ class Player extends CharacterController {
     private isWallSliding: boolean = false
     private wallSlidingSpeed: number = 40
 
+    private coyoteTime: number = .1 // in seconds
+    private coyoteTimeCounter: number = 0 
+
     private attemptWallJump: boolean = false
     private isWallJumping: boolean = false
     private isWallJumpFalling: boolean = false
@@ -48,7 +51,7 @@ class Player extends CharacterController {
     private leftWallLimit: number = 3
     private lastWallJumped: number = 0
     private wallJumpingDirection: number = 0
-    private wallJumpingCooldown: number = .6 // in seconds
+    private wallJumpingCooldown: number = .4 // in seconds (original is .6)
     private wallJumpingDebounce: number = 0
     private wallJumpingTimer: number = 200 // in milliseconds
     private wallJumpingPower: Vector2 = vectors.create(80, -330)
@@ -57,7 +60,9 @@ class Player extends CharacterController {
         super(_sprite)
 
         controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-            if (this.grounded) {
+            if (this.coyoteTimeCounter > 0) {
+                // let mySprite = sprites.create(assets.image`Hitbox`, SpriteKind.Player)
+                // mySprite.setPosition(this.sprite.x, this.sprite.y)
                 this.jumping = true
                 this.jumpHeld = true
             } else if (this.isWallSliding) {
@@ -67,6 +72,7 @@ class Player extends CharacterController {
         })
         controller.up.onEvent(ControllerButtonEvent.Released, function () {
             this.jumpHeld = false
+            this.coyoteTimeCounter = 0
         })
 
         game.onUpdate(function () {
@@ -85,8 +91,10 @@ class Player extends CharacterController {
                 this.leftWallLimit = 3
                 this.isWallJumpFalling = false
                 this.sprite.fx = 1000
+                this.coyoteTimeCounter = this.coyoteTime
             } else {
                 this.sprite.fx = 50
+                this.coyoteTimeCounter -= control.eventContext().deltaTime
             }
 
             if (!this.isWallJumping) {
@@ -186,9 +194,11 @@ class Player extends CharacterController {
             } else if (this.againstWall == -1) {
                 this.leftWallLimit -= 1
             }
+
             this.lastWallJumped = this.againstWall
             this.sprite.setVelocity(this.wallJumpingDirection * this.wallJumpingPower.x, this.wallJumpingPower.y)
             this.wallJumpingDebounce = this.wallJumpingCooldown
+
             if (this.facingDirection != this.wallJumpingDirection) {
                 this.flip()
             }

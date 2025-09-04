@@ -9,7 +9,7 @@ tiles.set_current_tilemap(tilemap("""
 tiles.place_on_random_tile(playerSprite, assets.tile("""
     Start
     """))
-playerSprite.set_position(playerSprite.x, 0)
+# playerSprite.setPosition(playerSprite.x, 0)
 tileUtil.replace_all_tiles(assets.tile("""
         Start
         """),
