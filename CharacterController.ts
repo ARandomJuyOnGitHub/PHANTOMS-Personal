@@ -2,7 +2,7 @@ class CharacterController {
     sprite: Sprite;
     physics: PhysicsController;
 
-    grounded: boolean = false;
+    grounded: boolean = true;
     againstWall: number = 0
 
     constructor(_sprite: Sprite) {
@@ -143,7 +143,6 @@ class Player extends CharacterController {
         if (!this.isWallJumpFalling) {
             this.sprite.vx = trueMovement * this.movementSpeed
         }
-        
     }
 
     jump() {
@@ -231,17 +230,140 @@ class Player extends CharacterController {
 
 interface State {
     name: string
-    enter(owner: Player): void
-    update(owner: Player): void
-    exit(owner: Player): void
+    enter(owner: NewPlayer): void
+    update(owner: NewPlayer): void
+    exit(owner: NewPlayer): void
+}
+
+class IdleState implements State {
+    name: string = "Idle"
+    constructor(){}
+    enter(owner: NewPlayer){}
+    update(owner: NewPlayer){
+        if (controller.right.isPressed() || controller.left.isPressed()){
+            owner.groundMovement.change("Running")
+        }
+    }
+    exit(owner: NewPlayer){}
+}
+
+class RunningState implements State {
+    name: string = "Running"
+    constructor(){}
+    enter(owner: NewPlayer) { }
+    update(owner: NewPlayer) {
+        this.movementInit(owner)
+    }
+    exit(owner: NewPlayer) {}
+
+    private movementInit(owner: NewPlayer) {
+        let rightMovement = 0
+        let leftMovement = 0
+
+        if (controller.right.isPressed()) {
+            // this.isWallJumpFalling = false
+            rightMovement = 1
+        } else {
+            rightMovement = 0
+        }
+
+        if (controller.left.isPressed()) {
+            // this.isWallJumpFalling = false
+            leftMovement = -1
+        } else {
+            leftMovement = 0
+        }
+
+        let trueMovement = rightMovement + leftMovement
+
+        owner.flip(trueMovement)
+
+        if (trueMovement == 0){
+            owner.groundMovement.change("Idle")
+        }
+
+        // if (!this.isWallJumpFalling) {
+            owner.sprite.vx = trueMovement * owner.movementSpeed
+        // }
+
+    }
+}
+
+class GroundedState implements State {
+    name: string = "Grounded"
+    private toJump: () => void
+
+    constructor(){}
+    enter(owner: NewPlayer){
+        console.log("Entered " + this.name)
+
+        this.toJump = function(){
+            owner.arialMovement.change("Jumping")
+        }
+
+        controller.up.addEventListener(ControllerButtonEvent.Pressed, this.toJump)
+    }
+    exit(owner: NewPlayer){
+        controller.up.removeEventListener(ControllerButtonEvent.Pressed, this.toJump)
+    }
+    update(owner: NewPlayer){
+        if (!owner.grounded){
+            owner.arialMovement.change("Falling") 
+        }
+    }
+}
+
+class JumpingState implements State {
+    name: string = "Jumping"
+    constructor() { }
+    enter(owner: NewPlayer) {
+        console.log("Entered " + this.name)
+        this.jump(owner)
+    }
+    exit(owner: NewPlayer) { }
+    update(owner: NewPlayer) {
+        if (owner.grounded){
+            owner.arialMovement.change("Grounded")
+            return
+        }
+
+        if (owner.sprite.vy >= 0) {
+            owner.arialMovement.change("Falling")
+            return
+        }
+
+        // Variable jump height
+        if (controller.up.isPressed()) {
+            owner.sprite.vy += owner.physics.gravitationalForce * (owner.longfall - 1) * control.eventContext().deltaTime
+        } else {
+            owner.sprite.vy += owner.physics.gravitationalForce * (owner.shortfall - 1) * control.eventContext().deltaTime
+        }
+    }
+
+    private jump(owner: NewPlayer) {
+        owner.physics.force(vectors.create(0, -owner.jumpPower))
+    }
+}
+
+class FallingState implements State {
+    name: string = "Falling"
+    constructor() { }
+    enter(owner: NewPlayer) { console.log("Entered " + this.name) }
+    exit(owner: NewPlayer) { }
+    update(owner: NewPlayer) {
+        if (owner.grounded){
+            owner.arialMovement.change("Grounded")
+            return
+        }
+    }
 }
 
 class StateMachine {
     private current: string
-    private states: { [key: string]: State }
-    private owner: Player
+    private states: { [key: string]: State } = {}
+    private owner: NewPlayer
 
-    constructor(owner: Player, initial: string, states: State[]) {
+    constructor(owner: NewPlayer, initial: string, states: State[]) {
         for (const state of states) {
             this.states[state.name] = state
         }
@@ -262,6 +384,67 @@ class StateMachine {
     }
 }
 
+class NewPlayer extends CharacterController {
+    movementSpeed: number = 100
+    private xMovementVelocity: number = 0
+    private facingDirection: number = -1
+
+    jumpPower: number = 200
+    private jumping: boolean = false
+    private jumpHeld: boolean = false
+    longfall: number = .85
+    shortfall: number = 2.55
+
+    private isWallSliding: boolean = false
+    private wallSlidingSpeed: number = 40
+
+    private coyoteTime: number = .1 // in seconds
+    private coyoteTimeCounter: number = 0
+
+    private attemptWallJump: boolean = false
+    private isWallJumping: boolean = false
+    private isWallJumpFalling: boolean = false
+    private rightWallLimit: number = 3
+    private leftWallLimit: number = 3
+    private lastWallJumped: number = 0
+    private wallJumpingDirection: number = 0
+    private wallJumpingCooldown: number = .4 // in seconds (original is .6)
+    private wallJumpingDebounce: number = 0
+    private wallJumpingTimer: number = 200 // in milliseconds
+    private wallJumpingPower: Vector2 = vectors.create(80, -330)
+
+    groundMovement: StateMachine
+    arialMovement: StateMachine
+
+    constructor(_sprite: Sprite) {
+        super(_sprite)
+
+        this.groundMovement = new StateMachine(this, "Idle", 
+        [
+            new IdleState(),
+            new RunningState()
+        ])
+
+        this.arialMovement = new StateMachine(this, "Grounded",
+        [
+            new GroundedState(),
+            new JumpingState(),
+            new FallingState()
+        ])
+
+        game.onUpdate(function(){
+            this.groundMovement.update()
+            this.arialMovement.update()
+        })
+    }
+
+    flip(direction: number) {
+        if (direction !== 0 && direction !== this.facingDirection) {
+            this.sprite.image.flipX()
+            this.facingDirection = direction
+        }
+    }
+}
 // 🏗️ Step 1 — Base State Interface
 
 // All states follow the same contract:
@@ -393,5 +576,3 @@ class StateMachine {
 //         })
 //     }
 // }
-
-// ✅ Benefits

@@ -1,7 +1,7 @@
 let playerSprite = sprites.create(assets.image`Normal Enemy`)
 scene.cameraFollowSprite(playerSprite)
 
-let player = new Player(playerSprite)
+let player = new NewPlayer(playerSprite)
 
 tiles.setCurrentTilemap(tilemap`level12`)
 tiles.placeOnRandomTile(playerSprite, assets.tile`Start`)
