@@ -238,11 +238,15 @@ interface State {
 class IdleState implements State {
     name: string = "Idle"
     constructor(){}
-    enter(owner: NewPlayer){}
+    enter(owner: NewPlayer) { }
     update(owner: NewPlayer){
-        if (controller.right.isPressed() || controller.left.isPressed()){
+        if ((controller.right.isPressed() || controller.left.isPressed()) && !this.guards(owner)){
             owner.groundMovement.change("Running")
         }
+    }
+
+    guards(owner: NewPlayer){
+        return (owner.arialMovement.getCurrentState() == "WallSliding")
     }
     exit(owner: NewPlayer){}
 }
@@ -282,9 +286,11 @@ class RunningState implements State {
             owner.groundMovement.change("Idle")
         }
 
-        // if (!this.isWallJumpFalling) {
+        if (!(owner.arialMovement.getCurrentState() == "WallJumping")) {
             owner.sprite.vx = trueMovement * owner.movementSpeed
-        // }
+            console.log("set run")
+            console.log(owner.sprite.vx)
+        }
 
     }
 }
@@ -295,7 +301,9 @@ class GroundedState implements State {
 
     constructor(){}
     enter(owner: NewPlayer){
-        console.log("Entered " + this.name)
+    
+
+        owner.sprite.fx = 1000
 
         this.toJump = function(){
             owner.arialMovement.change("Jumping")
@@ -305,6 +313,8 @@ class GroundedState implements State {
     }
     exit(owner: NewPlayer){
         controller.up.removeEventListener(ControllerButtonEvent.Pressed, this.toJump)
+
+        owner.sprite.fx = 50
     }
     update(owner: NewPlayer){
         if (!owner.grounded){
@@ -317,13 +327,18 @@ class JumpingState implements State {
     name: string = "Jumping"
     constructor() { }
     enter(owner: NewPlayer) {
-        console.log("Entered " + this.name)
+    
         this.jump(owner)
     }
     exit(owner: NewPlayer) { }
     update(owner: NewPlayer) {
         if (owner.grounded){
             owner.arialMovement.change("Grounded")
+            return
+        }
+        
+        if (owner.isWalled()){
+            owner.arialMovement.change("WallSliding")
             return
         }
 
@@ -348,11 +363,105 @@ class JumpingState implements State {
 class FallingState implements State {
     name: string = "Falling"
     constructor() { }
-    enter(owner: NewPlayer) { console.log("Entered " + this.name) }
+    enter(owner: NewPlayer) { }
     exit(owner: NewPlayer) { }
     update(owner: NewPlayer) {
         if (owner.grounded){
             owner.arialMovement.change("Grounded")
+            return
+        }
+
+        if (owner.isWalled()) {
+            owner.arialMovement.change("WallSliding")
+            return
+        }
+    }
+}
+
+class WallSlidingState implements State {
+    name: string = "WallSliding"
+    toWallJump: () => void
+    constructor() { }
+    enter(owner: NewPlayer) {
+        if (owner.groundMovement.getCurrentState() == "Running"){
+            owner.groundMovement.change("Idle")
+        }
+
+        this.toWallJump = function () {
+            if (!this.attemptWallJump(owner)){
+                return
+            }
+
+            owner.arialMovement.change("WallJumping")
+        }
+
+        controller.up.addEventListener(ControllerButtonEvent.Pressed, this.toWallJump)
+    }
+    exit(owner: NewPlayer) {
+        controller.up.removeEventListener(ControllerButtonEvent.Pressed, this.toWallJump)
+    }
+    update(owner: NewPlayer) {
+        if (!owner.isWalled()) {
+            owner.arialMovement.change("Falling")
+            return
+        }
+
+        if (owner.grounded) {
+            owner.arialMovement.change("Grounded")
+            return
+        }
+
+        owner.sprite.setVelocity(owner.sprite.vx, Math.constrain(owner.sprite.vy, 0, owner.wallSlidingSpeed))
+        if (owner.facingDirection != owner.againstWall) {
+            owner.flip(owner.againstWall)
+        }
+        owner.wallJumpingDirection = -owner.againstWall
+    }
+
+    attemptWallJump(owner: NewPlayer) {
+        // if your jumping from the same wall and the cool down isn't over do nothing
+        if ((owner.lastWallJumped == owner.againstWall) && owner.wallJumpingDebounce > 0) { return false }
+
+        // if the limmit for hte current wall ahs been reached do nothing
+        if ((owner.againstWall == 1 && owner.rightWallLimit <= 0) || (owner.againstWall == -1 && owner.leftWallLimit <= 0)) { return false }
+
+        return true
+    }
+}
+
+class WallJumpingState implements State {
+    name: string = "WallJumping"
+    constructor() { }
+    enter(owner: NewPlayer) {
+        if (owner.againstWall == 1) {
+            owner.rightWallLimit -= 1
+        } else if (owner.againstWall == -1) {
+            owner.leftWallLimit -= 1
+        }
+
+        owner.lastWallJumped = owner.againstWall
+        console.log("The supposed X")
+        console.log(owner.wallJumpingPower.x * owner.wallJumpingDirection)
+        owner.sprite.setVelocity(owner.wallJumpingDirection * owner.wallJumpingPower.x, owner.wallJumpingPower.y)
+        console.log("Set walljump")
+        console.log(owner.sprite.vx)
+        owner.wallJumpingDebounce = owner.wallJumpingCooldown
+
+        owner.flip(owner.wallJumpingDirection)
+
+        // timer.after(owner.wallJumpingTimer, function () {
+        //     this.isWallJumping = false
+        // })
+    }
+    exit(owner: NewPlayer) { }
+    update(owner: NewPlayer) {
+        if (owner.grounded) {
+            owner.arialMovement.change("Grounded")
+            return
+        }
+
+        if (owner.isWalled()) {
+            owner.arialMovement.change("WallSliding")
             return
         }
     }
@@ -382,12 +491,16 @@ class StateMachine {
         this.current = newState
         this.states[this.current].enter(this.owner)
     }
+
+    getCurrentState(): string {
+        return this.current
+    }
 }
 
 class NewPlayer extends CharacterController {
     movementSpeed: number = 100
     private xMovementVelocity: number = 0
-    private facingDirection: number = -1
+    facingDirection: number = -1
 
     jumpPower: number = 200
     private jumping: boolean = false
@@ -396,7 +509,7 @@ class NewPlayer extends CharacterController {
     shortfall: number = 2.55
 
     private isWallSliding: boolean = false
-    private wallSlidingSpeed: number = 40
+    wallSlidingSpeed: number = 40
 
     private coyoteTime: number = .1 // in seconds
     private coyoteTimeCounter: number = 0
@@ -404,14 +517,14 @@ class NewPlayer extends CharacterController {
     private attemptWallJump: boolean = false
     private isWallJumping: boolean = false
     private isWallJumpFalling: boolean = false
-    private rightWallLimit: number = 3
-    private leftWallLimit: number = 3
-    private lastWallJumped: number = 0
-    private wallJumpingDirection: number = 0
-    private wallJumpingCooldown: number = .4 // in seconds (original is .6)
-    private wallJumpingDebounce: number = 0
-    private wallJumpingTimer: number = 200 // in milliseconds
-    private wallJumpingPower: Vector2 = vectors.create(80, -330)
+    rightWallLimit: number = 3
+    leftWallLimit: number = 3
+    lastWallJumped: number = 0
+    wallJumpingDirection: number = 0
+    wallJumpingCooldown: number = .4 // in seconds (original is .6)
+    wallJumpingDebounce: number = 0
+    wallJumpingTimer: number = 200 // in milliseconds
+    wallJumpingPower: Vector2 = vectors.create(80, -330)
 
     groundMovement: StateMachine
     arialMovement: StateMachine
@@ -429,12 +542,15 @@ class NewPlayer extends CharacterController {
         [
             new GroundedState(),
             new JumpingState(),
-            new FallingState()
+            new FallingState(),
+            new WallSlidingState(),
+            new WallJumpingState()
         ])
 
         game.onUpdate(function(){
             this.groundMovement.update()
             this.arialMovement.update()
+            this.debounce()
         })
     }
 
@@ -443,6 +559,20 @@ class NewPlayer extends CharacterController {
             this.sprite.image.flipX()
             this.facingDirection = direction
         }
+    }
+
+    isWalled() {
+        if (this.againstWall == 1 && controller.right.isPressed()) {
+            return true
+        } else if (this.againstWall == -1 && controller.left.isPressed()) {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    debounce() {
+        this.wallJumpingDebounce -= control.eventContext().deltaTime
     }
 }
 // 🏗️ Step 1 — Base State Interface
