@@ -280,16 +280,15 @@ class RunningState implements State {
 
         let trueMovement = rightMovement + leftMovement
 
-        owner.flip(trueMovement)
-
+        if (!(owner.arialMovement.getCurrentState() == "WallJumping")) {
+            owner.flip(trueMovement)
+        }
         if (trueMovement == 0){
             owner.groundMovement.change("Idle")
         }
 
         if (!(owner.arialMovement.getCurrentState() == "WallJumping")) {
             owner.sprite.vx = trueMovement * owner.movementSpeed
-            console.log("set run")
-            console.log(owner.sprite.vx)
         }
 
     }
@@ -304,7 +303,9 @@ class GroundedState implements State {
     
 
         owner.sprite.fx = 1000
-
+        owner.rightWallLimit = 3
+        owner.leftWallLimit = 3
+        
         this.toJump = function(){
             owner.arialMovement.change("Jumping")
         }
@@ -327,7 +328,7 @@ class JumpingState implements State {
     name: string = "Jumping"
     constructor() { }
     enter(owner: NewPlayer) {
-    
+        console.log("ENTERED JUMPING AHAHAHAHAH")
         this.jump(owner)
     }
     exit(owner: NewPlayer) { }
@@ -383,9 +384,9 @@ class WallSlidingState implements State {
     toWallJump: () => void
     constructor() { }
     enter(owner: NewPlayer) {
-        if (owner.groundMovement.getCurrentState() == "Running"){
-            owner.groundMovement.change("Idle")
-        }
+        // if (owner.groundMovement.getCurrentState() == "Running"){
+        //     owner.groundMovement.change("Idle")
+        // }
 
         this.toWallJump = function () {
             if (!this.attemptWallJump(owner)){
@@ -440,18 +441,14 @@ class WallJumpingState implements State {
         }
 
         owner.lastWallJumped = owner.againstWall
-        console.log("The supposed X")
-        console.log(owner.wallJumpingPower.x * owner.wallJumpingDirection)
         owner.sprite.setVelocity(owner.wallJumpingDirection * owner.wallJumpingPower.x, owner.wallJumpingPower.y)
-        console.log("Set walljump")
-        console.log(owner.sprite.vx)
         owner.wallJumpingDebounce = owner.wallJumpingCooldown
 
         owner.flip(owner.wallJumpingDirection)
 
-        // timer.after(owner.wallJumpingTimer, function () {
-        //     this.isWallJumping = false
-        // })
+        timer.after(owner.wallJumpingTimer, function () {
+            owner.arialMovement.change("WallJumpFalling")
+        })
     }
     exit(owner: NewPlayer) { }
     update(owner: NewPlayer) {
@@ -467,6 +464,27 @@ class WallJumpingState implements State {
     }
 }
 
+class WallJumpFallingState implements State {
+    name: string = "WallJumpFalling"
+    constructor() { }
+    enter(owner: NewPlayer) { }
+    exit(owner: NewPlayer) { }
+    update(owner: NewPlayer) {
+        if (owner.grounded) {
+            owner.arialMovement.change("Grounded")
+            return
+        }
+
+        if (owner.isWalled()) {
+            owner.arialMovement.change("WallSliding")
+            return
+        }
+
+        if (controller.right.isPressed() || controller.left.isPressed()) {
+            owner.arialMovement.change("Falling")
+        }
+    }
+}
 class StateMachine {
     private current: string
     private states: { [key: string]: State } = {}
@@ -524,7 +542,7 @@ class NewPlayer extends CharacterController {
     wallJumpingCooldown: number = .4 // in seconds (original is .6)
     wallJumpingDebounce: number = 0
     wallJumpingTimer: number = 200 // in milliseconds
-    wallJumpingPower: Vector2 = vectors.create(80, -330)
+    wallJumpingPower: Vector2 = vectors.create(80, -160)
 
     groundMovement: StateMachine
     arialMovement: StateMachine
@@ -544,7 +562,8 @@ class NewPlayer extends CharacterController {
             new JumpingState(),
             new FallingState(),
             new WallSlidingState(),
-            new WallJumpingState()
+            new WallJumpingState(),
+            new WallJumpFallingState
         ])
 
         game.onUpdate(function(){
@@ -575,134 +594,3 @@ class NewPlayer extends CharacterController {
         this.wallJumpingDebounce -= control.eventContext().deltaTime
     }
 }
-// 🏗️ Step 1 — Base State Interface
-
-// All states follow the same contract:
-
-// interface State {
-//     enter(owner: Player): void
-//     update(owner: Player): void
-//     exit(owner: Player): void
-// }
-
-// 🏗️ Step 2 — State Machine Class
-// class StateMachine {
-//     current: State
-
-//     constructor(initial: State) {
-//         this.current = initial
-//     }
-
-//     change(state: State, owner: Player) {
-//         if (this.current) this.current.exit(owner)
-//         this.current = state
-//         this.current.enter(owner)
-//     }
-
-//     update(owner: Player) {
-//         if (this.current) this.current.update(owner)
-//     }
-// }
-
-// 🏗️ Step 3 — Nested Locomotion States
-
-// Locomotion is its own state machine.
-
-// // ---- PARENT STATES ----
-// class GroundedState implements State {
-//     subMachine: StateMachine
-
-//     constructor() {
-//         this.subMachine = new StateMachine(new IdleState()) // default child
-//     }
-
-//     enter(owner: Player) { }
-//     update(owner: Player) {
-//         if (!owner.grounded) {
-//             owner.locomotion.change(new AirborneState(), owner)
-//             return
-//         }
-//         this.subMachine.update(owner)  // update child
-//     }
-//     exit(owner: Player) { }
-// }
-
-// class AirborneState implements State {
-//     subMachine: StateMachine
-
-//     constructor() {
-//         this.subMachine = new StateMachine(new JumpingState())
-//     }
-
-//     enter(owner: Player) { }
-//     update(owner: Player) {
-//         if (owner.grounded) {
-//             owner.locomotion.change(new GroundedState(), owner)
-//             return
-//         }
-//         this.subMachine.update(owner)
-//     }
-//     exit(owner: Player) { }
-// }
-
-// // ---- CHILD STATES ----
-// class IdleState implements State {
-//     enter(owner: Player) { owner.sprite.vx = 0 }
-//     update(owner: Player) {
-//         if (controller.left.isPressed() || controller.right.isPressed()) {
-//             owner.locomotion.current.subMachine.change(new RunningState(), owner)
-//         }
-//     }
-//     exit(owner: Player) { }
-// }
-
-// class RunningState implements State {
-//     update(owner: Player) {
-//         let dir = 0
-//         if (controller.left.isPressed()) dir = -1
-//         if (controller.right.isPressed()) dir = 1
-//         owner.sprite.vx = dir * owner.movementSpeed
-
-//         if (dir == 0) {
-//             owner.locomotion.current.subMachine.change(new IdleState(), owner)
-//         }
-//     }
-//     enter(owner: Player) { }
-//     exit(owner: Player) { }
-// }
-
-// class JumpingState implements State {
-//     enter(owner: Player) {
-//         owner.sprite.vy = -owner.jumpPower
-//     }
-//     update(owner: Player) {
-//         if (owner.sprite.vy > 0) {
-//             owner.locomotion.current.subMachine.change(new FallingState(), owner)
-//         }
-//     }
-//     exit(owner: Player) { }
-// }
-
-// class FallingState implements State {
-//     update(owner: Player) {
-//         if (owner.grounded) {
-//             owner.locomotion.change(new GroundedState(), owner)
-//         }
-//     }
-//     enter(owner: Player) { }
-//     exit(owner: Player) { }
-// }
-
-// 🏗️ Step 4 — Player Uses It
-// class Player extends CharacterController {
-//     locomotion: StateMachine
-
-//     constructor(sprite: Sprite) {
-//         super(sprite)
-//         this.locomotion = new StateMachine(new GroundedState())
-
-//         game.onUpdate(() => {
-//             this.locomotion.update(this)
-//         })
-//     }
-// }
