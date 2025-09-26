@@ -434,6 +434,8 @@ class WallJumpingState implements State {
     name: string = "WallJumping"
     constructor() { }
     enter(owner: NewPlayer) {
+        owner.wallJumpingDirection = -owner.againstWall
+
         if (owner.againstWall == 1) {
             owner.rightWallLimit -= 1
         } else if (owner.againstWall == -1) {
@@ -461,6 +463,8 @@ class WallJumpingState implements State {
             owner.arialMovement.change("WallSliding")
             return
         }
+
+        owner.sprite.vy += owner.physics.gravitationalForce * (owner.shortfall - 1) * control.eventContext().deltaTime
     }
 }
 
@@ -483,6 +487,7 @@ class WallJumpFallingState implements State {
         if (controller.right.isPressed() || controller.left.isPressed()) {
             owner.arialMovement.change("Falling")
         }
+
     }
 }
 class StateMachine {
@@ -542,7 +547,7 @@ class NewPlayer extends CharacterController {
     wallJumpingCooldown: number = .4 // in seconds (original is .6)
     wallJumpingDebounce: number = 0
     wallJumpingTimer: number = 200 // in milliseconds
-    wallJumpingPower: Vector2 = vectors.create(80, -160)
+    wallJumpingPower: Vector2 = vectors.create(80, -310)
 
     groundMovement: StateMachine
     arialMovement: StateMachine
