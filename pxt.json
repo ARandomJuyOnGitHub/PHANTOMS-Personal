@@ -1,5 +1,5 @@
 {
-    "name": "PHANTOMS-Personal V.0.6.1",
+    "name": "PHANTOMS-Personal V.0.5.1",
     "description": "",
     "dependencies": {
         "device": "*",
@@ -45,7 +45,7 @@
         "branch": "v1.12.49",
         "tag": "v1.12.49",
         "commits": "https://github.com/microsoft/pxt-arcade/commits/8b39eda27ca91b27b57fc1f30c6b3b33d3fc2029",
-        "target": "2.0.62",
+        "target": "2.0.56",
         "pxt": "8.5.60",
         "targetId": "arcade"
     },

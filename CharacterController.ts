@@ -1,17 +1,15 @@
-abstract class CharacterController {
+class CharacterController {
     sprite: Sprite;
     physics: PhysicsController;
 
     grounded: boolean = true;
     againstWall: number = 0
 
-    debugMode = false;
-
     constructor(_sprite: Sprite) {
         this.sprite = _sprite
         this.physics = new PhysicsController(_sprite)
 
-        game.onUpdate(function() {
+        game.onUpdate(function () {
             if (this.sprite.isHittingTile(CollisionDirection.Bottom)) {
                 this.grounded = true
             } else {
@@ -29,28 +27,17 @@ abstract class CharacterController {
     }
 }
 
-abstract class State<T extends CharacterController> {
-    readonly name: string;
-
-    constructor(name: string){
-        this.name = name
-    }
-
-    enter(owner: T): void {
-        if ((owner as any).debugMode) {
-            console.log("Entered" + this.name)
-        }
-    }
-    update(owner: T): void {}
-    exit(owner: T): void {}
+interface State {
+    name: string
+    enter(owner: Player): void
+    update(owner: Player): void
+    exit(owner: Player): void
 }
 
-class IdleState extends State<Player> {
-    constructor(){
-        super("Idle")
-    }
-
-    enter(owner: Player) {super.enter(owner)}
+class IdleState implements State {
+    name: string = "Idle"
+    constructor(){}
+    enter(owner: Player) { }
     update(owner: Player){
         if ((controller.right.isPressed() || controller.left.isPressed()) && !this.guards(owner)){
             owner.groundMovement.change("Running")
@@ -60,16 +47,17 @@ class IdleState extends State<Player> {
     guards(owner: Player){
         return (owner.arialMovement.getCurrentState() == "WallSliding")
     }
+    exit(owner: Player){}
 }
 
-class RunningState extends State<Player> {
-    constructor() {
-        super("Running")
-    }
-    enter(owner: Player) { super.enter(owner) }
+class RunningState implements State {
+    name: string = "Running"
+    constructor(){}
+    enter(owner: Player) { }
     update(owner: Player) {
         this.movementInit(owner)
     }
+    exit(owner: Player) {}
 
     private movementInit(owner: Player) {
         let rightMovement = 0
@@ -105,14 +93,13 @@ class RunningState extends State<Player> {
     }
 }
 
-class GroundedState extends State<Player> {
-    constructor() {
-        super("Grounded")
-    }
+class GroundedState implements State {
+    name: string = "Grounded"
     private toJump: () => void
 
+    constructor(){}
     enter(owner: Player){
-        super.enter(owner)
+    
 
         owner.sprite.fx = 1000
         owner.rightWallLimit = 3
@@ -137,17 +124,14 @@ class GroundedState extends State<Player> {
     }
 }
 
-class JumpingState extends State<Player> {
-    constructor() {
-        super("Jumping")
-    }
-
+class JumpingState implements State {
+    name: string = "Jumping"
+    constructor() { }
     enter(owner: Player) {
-        super.enter(owner)
-
         owner.coyoteTimeCounter = 0
         this.jump(owner)
     }
+    exit(owner: Player) { }
     update(owner: Player) {
         if (owner.grounded){
             owner.arialMovement.change("Grounded")
@@ -177,12 +161,11 @@ class JumpingState extends State<Player> {
     }
 }
 
-class FallingState extends State<Player> {
-    constructor() {
-        super("Falling")
-    }
-
-    enter(owner: Player) { super.enter(owner) }
+class FallingState implements State {
+    name: string = "Falling"
+    constructor() { }
+    enter(owner: Player) { }
+    exit(owner: Player) { }
     update(owner: Player) {
         if (owner.grounded){
             owner.arialMovement.change("Grounded")
@@ -201,43 +184,39 @@ class FallingState extends State<Player> {
     }
 }
 
-class WallSlidingState extends State<Player> {
-    constructor() {
-        super("WallSliding")
-    }
+class WallSlidingState implements State {
+    name: string = "WallSliding"
     toWallJump: () => void
-
+    constructor() { }
     enter(owner: Player) {
-        super.enter(owner)
         // if (owner.groundMovement.getCurrentState() == "Running"){
         //     owner.groundMovement.change("Idle")
         // }
-        
+
         this.toWallJump = function () {
-            console.log("tey")
             if (!this.attemptWallJump(owner)){
                 return
             }
 
             owner.arialMovement.change("WallJumping")
         }
-        
+
         controller.up.addEventListener(ControllerButtonEvent.Pressed, this.toWallJump)
     }
     exit(owner: Player) {
         controller.up.removeEventListener(ControllerButtonEvent.Pressed, this.toWallJump)
     }
     update(owner: Player) {
+        if (!owner.isWalled()) {
+            owner.arialMovement.change("Falling")
+            return
+        }
+
         if (owner.grounded) {
             owner.arialMovement.change("Grounded")
             return
         }
 
-        if (!owner.isWalled()) {
-            owner.arialMovement.change("Falling")
-            return
-        }
-        
         owner.sprite.setVelocity(owner.sprite.vx, Math.constrain(owner.sprite.vy, 0, owner.wallSlidingSpeed))
         if (owner.facingDirection != owner.againstWall) {
             owner.flip(owner.againstWall)
@@ -256,14 +235,10 @@ class WallSlidingState extends State<Player> {
     }
 }
 
-class WallJumpingState extends State<Player> {
-    constructor() {
-        super("WallJumping")
-    }
-
+class WallJumpingState implements State {
+    name: string = "WallJumping"
+    constructor() { }
     enter(owner: Player) {
-        super.enter(owner)
-
         owner.wallJumpingDirection = -owner.againstWall
 
         if (owner.againstWall == 1) {
@@ -282,6 +257,7 @@ class WallJumpingState extends State<Player> {
             owner.arialMovement.change("WallJumpFalling")
         })
     }
+    exit(owner: Player) { }
     update(owner: Player) {
         if (owner.grounded) {
             owner.arialMovement.change("Grounded")
@@ -297,12 +273,11 @@ class WallJumpingState extends State<Player> {
     }
 }
 
-class WallJumpFallingState extends State<Player> {
-    constructor() {
-        super("WallJumpFalling")
-    }
-
-    enter(owner: Player) { super.enter(owner) }
+class WallJumpFallingState implements State {
+    name: string = "WallJumpFalling"
+    constructor() { }
+    enter(owner: Player) { }
+    exit(owner: Player) { }
     update(owner: Player) {
         if (owner.grounded) {
             owner.arialMovement.change("Grounded")
@@ -321,21 +296,19 @@ class WallJumpFallingState extends State<Player> {
     }
 }
 
-class StateMachine<T extends CharacterController> {
+class StateMachine {
     private current: string
-    private states: { [key: string]: State<T> } = {}
-    private owner: T
+    private states: { [key: string]: State } = {}
+    private owner: Player
 
-    constructor(owner: T, initial: string, states: State<T>[]) {
+    constructor(owner: Player, initial: string, states: State[]) {
         for (const state of states) {
             this.states[state.name] = state
         }
 
         this.owner = owner
         this.current = initial
-        console.log(this.current)
         this.states[this.current].enter(owner)
-        
     }
 
     update() {
@@ -375,8 +348,8 @@ class Player extends CharacterController {
     wallJumpingTimer: number = 200 // in milliseconds
     wallJumpingPower: Vector2 = vectors.create(80, -310)
 
-    groundMovement: StateMachine<Player>
-    arialMovement: StateMachine<Player>
+    groundMovement: StateMachine
+    arialMovement: StateMachine
 
     constructor(_sprite: Sprite) {
         super(_sprite)
@@ -394,7 +367,7 @@ class Player extends CharacterController {
             new FallingState(),
             new WallSlidingState(),
             new WallJumpingState(),
-            new WallJumpFallingState()
+            new WallJumpFallingState
         ])
 
         game.onUpdate(function(){
