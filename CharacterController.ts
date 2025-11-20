@@ -6,7 +6,7 @@ class CharacterController {
     againstWall: number = 0
 
     constructor(_sprite: Sprite) {
-        this.sprite = _sprite
+        this.sprite =  _sprite
         this.physics = new PhysicsController(_sprite)
 
         game.onUpdate(function () {
