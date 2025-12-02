@@ -381,6 +381,9 @@ class Player extends CharacterController {
     constructor(_sprite: Sprite) {
         super(_sprite)
 
+        this.sprite.setKind(SpriteKind.Player)
+        this.sprite.data = this
+
         this.groundMovement = new StateMachine(this, "Idle", 
         [
             new IdleState(),

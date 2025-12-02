@@ -1,9 +1,13 @@
+namespace SpriteKind {
+    export const TestEnemy = SpriteKind.create()
+}
+
 let playerSprite = sprites.create(assets.image`Normal Enemy`)
 scene.cameraFollowSprite(playerSprite)
 
 let player = new Player(playerSprite)
 
-tiles.setCurrentTilemap(tilemap`level12`)
+tiles.setCurrentTilemap(tilemap`Combat Testing`)
 tiles.placeOnRandomTile(playerSprite, assets.tile`Start`)
 // playerSprite.setPosition(playerSprite.x, 0)
 tileUtil.replaceAllTiles(assets.tile`Start`, assets.tile`transparency16`)

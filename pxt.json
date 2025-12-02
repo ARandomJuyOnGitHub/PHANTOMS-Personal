@@ -36,7 +36,8 @@
         "images.g.ts",
         "PhysicsController.ts",
         "CharacterController.ts",
-        "main.py"
+        "main.py",
+        "HitboxManager.ts"
     ],
     "testFiles": [
         "test.ts"
