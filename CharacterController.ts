@@ -214,7 +214,6 @@ class WallSlidingState extends State<Player> {
         // }
         
         this.toWallJump = function () {
-            console.log("tey")
             if (!this.attemptWallJump(owner)){
                 return
             }
