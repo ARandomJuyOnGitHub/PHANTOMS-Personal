@@ -1,12 +1,19 @@
+
+
 let playerSprite = sprites.create(assets.image`Normal Enemy`)
 scene.cameraFollowSprite(playerSprite)
 
 let player = new Player(playerSprite)
 
-tiles.setCurrentTilemap(tilemap`level12`)
+tiles.setCurrentTilemap(tilemap`Combat Testing`)
 tiles.placeOnRandomTile(playerSprite, assets.tile`Start`)
-// playerSprite.setPosition(playerSprite.x, 0)
 tileUtil.replaceAllTiles(assets.tile`Start`, assets.tile`transparency16`)
+
+let guy = sprites.create(assets.image`Normal Enemy`)
+tiles.placeOnRandomTile(guy, assets.tile`myTile49`)
+tileUtil.replaceAllTiles(assets.tile`myTile49`, assets.tile`transparency16`)
+
+let box = new Hitbox(guy, SpriteKind.EnemyHitbox,vectors.create(10,10),vectors.create(-10,0),0.1,true)
 
 function pillars_background() {
     scroller.scrollBackgroundWithCamera(scroller.CameraScrollMode.BothDirections, scroller.BackgroundLayer.Layer0)
