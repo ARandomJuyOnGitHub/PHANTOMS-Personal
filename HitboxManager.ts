@@ -44,18 +44,19 @@ class Hitbox {
 }
 
 namespace HitboxHandler{
-    export function getSpriteData(sprite1: Sprite, sprite2: Sprite) {
-        return sprite1.data, sprite2.data
+    export function getSpriteData(sprite1: Sprite, sprite2: Sprite): [Player, Hitbox] {
+        return [sprite1.data, sprite2.data]
     }
 
-    export function processCollision(thing1: Player | Hitbox, thing2: Player | Hitbox){
-        console.log("hit detected")
-        console.log("do another!")
+    export function processCollision(thing1: Player, thing2: Hitbox){
+        thing1.dealDamage(0,5,vectors.create(150,-100))
     }
 }
 
 sprites.onOverlap(SpriteKind.Player, SpriteKind.EnemyHitbox, function(sprite: Sprite, otherSprite: Sprite) {
-    let player: Player, hitbox: Hitbox = HitboxHandler.getSpriteData(sprite, otherSprite)
+    let entities: [Player, Hitbox] = HitboxHandler.getSpriteData(sprite, otherSprite)
+    let player: Player = (entities as any[])[0]
+    let hitbox: Hitbox = (entities as any[])[1]
     if (hitbox.enabled) {
         hitbox.reset()
         HitboxHandler.processCollision(player, hitbox)

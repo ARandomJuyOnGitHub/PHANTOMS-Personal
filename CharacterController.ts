@@ -320,10 +320,13 @@ class WallJumpFallingState extends State<Player> {
     }
 }
 
+// reminder: change the disabled feature so that state machine doesn't skip over change calls
 class StateMachine<T extends CharacterController> {
     private current: string
     private states: { [key: string]: State<T> } = {}
     private owner: T
+
+    disabled = false
 
     constructor(owner: T, initial: string, states: State<T>[]) {
         for (const state of states) {
@@ -332,16 +335,16 @@ class StateMachine<T extends CharacterController> {
 
         this.owner = owner
         this.current = initial
-        console.log(this.current)
         this.states[this.current].enter(owner)
-        
     }
 
     update() {
+        if (this.disabled) {return}
         this.states[this.current].update(this.owner)
     }
 
     change(newState: string) {
+        if (this.disabled) {return}
         this.states[this.current].exit(this.owner)
         this.current = newState
         this.states[this.current].enter(this.owner)
@@ -349,6 +352,40 @@ class StateMachine<T extends CharacterController> {
 
     getCurrentState(): string {
         return this.current
+    }
+}
+
+class NeutralState extends State<Player> {
+    constructor() {
+        super("Neutral")
+    }
+
+    enter(owner: Player) { super.enter(owner) }
+    update(owner: Player) {
+        // do nothing for now
+    }
+}
+
+class StunnedState extends State<Player> {
+    constructor() {
+        super("Stunned")
+    }
+
+    enter(owner: Player) { super.enter(owner)
+        owner.arialMovement.disabled = true
+        owner.groundMovement.disabled = true
+        owner.sprite.fx = 50
+    }
+
+    exit(owner: Player) {
+        owner.arialMovement.disabled = false
+        owner.groundMovement.disabled = false
+    }
+
+    update(owner: Player) {
+        if (owner.stunnedTime <= 0) {
+            owner.combat.change("Neutral")
+        }
     }
 }
 
@@ -374,8 +411,11 @@ class Player extends CharacterController {
     wallJumpingTimer: number = 200 // in milliseconds
     wallJumpingPower: Vector2 = vectors.create(80, -310)
 
+    stunnedTime = 2
+
     groundMovement: StateMachine<Player>
     arialMovement: StateMachine<Player>
+    combat: StateMachine<Player>
 
     constructor(_sprite: Sprite) {
         super(_sprite)
@@ -399,17 +439,32 @@ class Player extends CharacterController {
             new WallJumpFallingState()
         ])
 
+        this.combat = new StateMachine(this, "Neutral",
+        [
+            new NeutralState(),
+            new StunnedState()
+        ])
+
         game.onUpdate(function(){
             this.groundMovement.update()
             this.arialMovement.update()
+            this.combat.update()
             this.debounce()
         })
     }
 
-    flip(direction: number) {
-        if (direction !== 0 && direction !== this.facingDirection) {
+
+    dealDamage(damage: number, stunTime: number, knockBack?: Vector2) {
+        // damge does nothing for now
+        this.stunnedTime = stunTime
+        this.combat.change("Stunned")
+        this.physics.force(knockBack)
+    }
+
+    flip(newDirection: number) {
+        if (newDirection !== 0 && newDirection !== this.facingDirection) {
             this.sprite.image.flipX()
-            this.facingDirection = direction
+            this.facingDirection = newDirection
         }
     }
 
@@ -426,5 +481,6 @@ class Player extends CharacterController {
     debounce() {
         this.wallJumpingDebounce -= control.eventContext().deltaTime
         this.coyoteTimeCounter -= control.eventContext().deltaTime
+        this.stunnedTime -= control.eventContext().deltaTime
     }
 }
