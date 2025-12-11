@@ -2,6 +2,7 @@ abstract class CharacterController {
     sprite: Sprite;
     physics: PhysicsController;
 
+    facingDirection: number;
     grounded: boolean = true;
     againstWall: number = 0
 
@@ -9,6 +10,7 @@ abstract class CharacterController {
 
     constructor(_sprite: Sprite) {
         this.sprite = _sprite
+        this.sprite.data = this
         this.physics = new PhysicsController(_sprite)
 
         game.onUpdate(function() {
@@ -26,6 +28,13 @@ abstract class CharacterController {
                 this.againstWall = 0
             }
         })
+    }
+
+    flip(newDirection: number) {
+        if (newDirection !== 0 && newDirection !== this.facingDirection) {
+            this.sprite.image.flipX()
+            this.facingDirection = newDirection
+        }
     }
 }
 
@@ -374,7 +383,7 @@ class StunnedState extends State<Player> {
     enter(owner: Player) { super.enter(owner)
         owner.arialMovement.disabled = true
         owner.groundMovement.disabled = true
-        owner.sprite.fx = 50
+        owner.sprite.fx = 100
     }
 
     exit(owner: Player) {
@@ -389,9 +398,9 @@ class StunnedState extends State<Player> {
     }
 }
 
+
 class Player extends CharacterController {
     movementSpeed: number = 100
-    facingDirection: number = -1
 
     jumpPower: number = 200
     longfall: number = .85
@@ -419,9 +428,8 @@ class Player extends CharacterController {
 
     constructor(_sprite: Sprite) {
         super(_sprite)
-
+        this.facingDirection = -1
         this.sprite.setKind(SpriteKind.Player)
-        this.sprite.data = this
 
         this.groundMovement = new StateMachine(this, "Idle", 
         [
@@ -459,13 +467,6 @@ class Player extends CharacterController {
         this.stunnedTime = stunTime
         this.combat.change("Stunned")
         this.physics.force(knockBack)
-    }
-
-    flip(newDirection: number) {
-        if (newDirection !== 0 && newDirection !== this.facingDirection) {
-            this.sprite.image.flipX()
-            this.facingDirection = newDirection
-        }
     }
 
     isWalled() {

@@ -1,5 +1,5 @@
 {
-    "name": "PHANTOMS-Personal V.0.8.0",
+    "name": "PHANTOMS-Personal V.0.8.1",
     "description": "",
     "dependencies": {
         "device": "*",
@@ -23,7 +23,7 @@
         "arcade-tile-util": "github:microsoft/arcade-tile-util#v1.2.0",
         "pxt-scaling": "github:jwunderl/pxt-scaling#v0.1.0",
         "arcade-background-scroll": "github:microsoft/arcade-background-scroll#v0.1.2",
-        "Vector2 Extension": "github:arandomjuyongithub/pxt-vector2#v1.1.3",
+        "Vector2 Extension": "github:arandomjuyongithub/pxt-vector2#v1.1.4",
         "Anchor Extension": "github:arandomjuyongithub/anchor-extension#v0.1.0"
     },
     "files": [
@@ -37,7 +37,9 @@
         "PhysicsController.ts",
         "CharacterController.ts",
         "main.py",
-        "HitboxManager.ts"
+        "HitboxManager.ts",
+        "EnemyManager.ts",
+        "GameManager.ts"
     ],
     "testFiles": [
         "test.ts"

@@ -2,16 +2,32 @@ namespace SpriteKind {
     export const EnemyHitbox = SpriteKind.create()
 }
 
+// invisible spreites dont collide. will most likely will have
+// to make collision system from scratch
+
 class Hitbox {
     sprite: Sprite
     parent: Sprite
-    visible: boolean = false
+
     debounce: number = -1
+    knockBackMagnitude?: number;
+    knockBackDirection?: Vector2;// is only used if direction is defined
+    visible: boolean = false
     enabled: boolean = true
-    constructor(parent: Sprite, kind: number, dimensions: Vector2, offset?: Vector2, debounce?: number, visible?: boolean) {
+
+    constructor(parent: Sprite, kind: number, dimensions: Vector2, magnitude?: number, direction?: Vector2, offset?: Vector2, debounce?: number, visible?: boolean) {
         this.parent = parent
         let box = image.create(dimensions.x, dimensions.y)
+        box.fill(6)
         
+        if (magnitude) {
+            this.knockBackMagnitude = magnitude
+        }
+
+        if (direction) {
+            this.knockBackDirection = direction
+        }
+
         if (!offset) {
             offset = vectors.create() 
         }
@@ -20,13 +36,13 @@ class Hitbox {
             this.debounce = debounce  
         }
 
-        if (visible) { 
+        if (this.visible) { 
             this.visible = visible
-            box.fill(6)
         }
 
         this.sprite = sprites.create(box, kind)
         this.sprite.data = this
+        this.sprite.setFlag(SpriteFlag.Invisible, this.visible)
 
         anchor.anchorSprite(parent,this.sprite,offset)
     }
@@ -48,8 +64,18 @@ namespace HitboxHandler{
         return [sprite1.data, sprite2.data]
     }
 
-    export function processCollision(thing1: Player, thing2: Hitbox){
-        thing1.dealDamage(0,5,vectors.create(150,-100))
+    function getDirection(sprite1: Sprite , sprite2: Sprite) {
+        let direcionVector: Vector2 = vectors.subtract(vectors.spritePropertyToVector(sprite1, SpriteProperties.Position), vectors.spritePropertyToVector(sprite2, SpriteProperties.Position))
+        return vectors.normal(direcionVector)
+    }
+
+    export function processCollision(player: Player, hitbox: Hitbox){
+        let direction = hitbox.knockBackDirection
+        if (direction == undefined) {
+            direction = getDirection(player.sprite,hitbox.sprite)
+        }
+
+        player.dealDamage(0, 5, vectors.multiply(direction, hitbox.knockBackMagnitude))
     }
 }
 
