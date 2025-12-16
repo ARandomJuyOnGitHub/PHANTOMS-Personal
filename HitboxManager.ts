@@ -1,5 +1,6 @@
 namespace SpriteKind {
     export const EnemyHitbox = SpriteKind.create()
+    export const PlayerHitbox = SpriteKind.create()
 }
 
 // invisible spreites dont collide. will most likely will have
@@ -9,13 +10,14 @@ class Hitbox {
     sprite: Sprite
     parent: Sprite
 
+    active: boolean = true
     debounce: number = -1
     knockBackMagnitude?: number;
     knockBackDirection?: Vector2;// is only used if direction is defined
     visible: boolean = false
     enabled: boolean = true
 
-    constructor(parent: Sprite, kind: number, dimensions: Vector2, magnitude?: number, direction?: Vector2, offset?: Vector2, debounce?: number, visible?: boolean) {
+    constructor(parent: Sprite, kind: number, dimensions: Vector2, offset?: Vector2, magnitude?: number, direction?: Vector2, debounce?: number, visible?: boolean) {
         this.parent = parent
         let box = image.create(dimensions.x, dimensions.y)
         box.fill(6)
@@ -45,17 +47,24 @@ class Hitbox {
         this.sprite.setFlag(SpriteFlag.Invisible, this.visible)
 
         anchor.anchorSprite(parent,this.sprite,offset)
+        console.log(anchor.isAnchoredTo(parent,this.sprite))
     }
 
     reset() {
         this.enabled = false
         if (this.debounce > 0) {
             timer.after(this.debounce * 1000, () => {
-                if (this) {
+                if (this.active) {
                     this.enabled = true
                 }
             })
         }
+    }
+
+    destroy() {
+        this.active = false
+        anchor.unanchorSprite(this.parent,this.sprite)
+        sprites.destroy(this.sprite)
     }
 }
 

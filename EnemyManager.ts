@@ -10,7 +10,8 @@ abstract class Enemy extends CharacterController {
             this.sprite,
             SpriteKind.EnemyHitbox,
             vectors.create(this.sprite.image.width, this.sprite.image.height),
-            200,
+            null,
+            200
         )
         this.hitlol.debounce = 1
         tiles.placeOnRandomTile(this.sprite, assets.tile`myTile49`)

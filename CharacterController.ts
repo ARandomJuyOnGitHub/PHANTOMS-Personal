@@ -13,7 +13,7 @@ abstract class CharacterController {
         this.sprite.data = this
         this.physics = new PhysicsController(_sprite)
 
-        game.onUpdate(function() {
+        game.onUpdate(function () {
             if (this.sprite.isHittingTile(CollisionDirection.Bottom)) {
                 this.grounded = true
             } else {
@@ -41,7 +41,7 @@ abstract class CharacterController {
 abstract class State<T extends CharacterController> {
     readonly name: string;
 
-    constructor(name: string){
+    constructor(name: string) {
         this.name = name
     }
 
@@ -50,23 +50,23 @@ abstract class State<T extends CharacterController> {
             console.log("Entered" + this.name)
         }
     }
-    update(owner: T): void {}
-    exit(owner: T): void {}
+    update(owner: T): void { }
+    exit(owner: T): void { }
 }
 
 class IdleState extends State<Player> {
-    constructor(){
+    constructor() {
         super("Idle")
     }
 
-    enter(owner: Player) {super.enter(owner)}
-    update(owner: Player){
-        if ((controller.right.isPressed() || controller.left.isPressed()) && !this.guards(owner)){
+    enter(owner: Player) { super.enter(owner) }
+    update(owner: Player) {
+        if ((controller.right.isPressed() || controller.left.isPressed()) && !this.guards(owner)) {
             owner.groundMovement.change("Running")
         }
     }
 
-    guards(owner: Player){
+    guards(owner: Player) {
         return (owner.arialMovement.getCurrentState() == "WallSliding")
     }
 }
@@ -86,24 +86,25 @@ class RunningState extends State<Player> {
 
         if (controller.right.isPressed()) {
             // this.isWallJumpFalling = false
-            rightMovement = 1
+            rightMovement = 1 + owner.restrictMovementDir
         } else {
             rightMovement = 0
         }
 
         if (controller.left.isPressed()) {
             // this.isWallJumpFalling = false
-            leftMovement = -1
+            leftMovement = -1 + owner.restrictMovementDir
         } else {
             leftMovement = 0
         }
 
-        let trueMovement = rightMovement + leftMovement
+        let trueMovementUnbound = rightMovement + leftMovement
+        let trueMovement = Math.clamp(-1,1, trueMovementUnbound)
 
         if (!(owner.arialMovement.getCurrentState() == "WallJumping")) {
             owner.flip(trueMovement)
         }
-        if (trueMovement == 0){
+        if (trueMovement == 0) {
             owner.groundMovement.change("Idle")
         }
 
@@ -119,29 +120,37 @@ class GroundedState extends State<Player> {
         super("Grounded")
     }
     private toJump: () => void
+    private toAttack: () => void
 
-    enter(owner: Player){
+    enter(owner: Player) {
         super.enter(owner)
 
         owner.sprite.fx = 1000
         owner.rightWallLimit = 3
         owner.leftWallLimit = 3
-        
-        this.toJump = function(){
+
+        this.toJump = function () {
+            if (owner.combat.getCurrentState() == "Attacking") { return }
             owner.arialMovement.change("Jumping")
+        }
+        this.toAttack = function () {
+            if (owner.combat.getCurrentState() == "Attacking") { return }
+            owner.combat.change("Attacking")
         }
 
         controller.up.addEventListener(ControllerButtonEvent.Pressed, this.toJump)
+        controller.A.addEventListener(ControllerButtonEvent.Pressed,this.toAttack)
     }
-    exit(owner: Player){
+    exit(owner: Player) {
         controller.up.removeEventListener(ControllerButtonEvent.Pressed, this.toJump)
+        controller.A.removeEventListener(ControllerButtonEvent.Pressed, this.toAttack)
 
         owner.sprite.fx = 50
         owner.coyoteTimeCounter = owner.coyoteTime
     }
-    update(owner: Player){
-        if (!owner.grounded){
-            owner.arialMovement.change("Falling") 
+    update(owner: Player) {
+        if (!owner.grounded) {
+            owner.arialMovement.change("Falling")
         }
     }
 }
@@ -158,12 +167,12 @@ class JumpingState extends State<Player> {
         this.jump(owner)
     }
     update(owner: Player) {
-        if (owner.grounded){
+        if (owner.grounded) {
             owner.arialMovement.change("Grounded")
             return
         }
-        
-        if (owner.isWalled()){
+
+        if (owner.isWalled()) {
             owner.arialMovement.change("WallSliding")
             return
         }
@@ -193,7 +202,7 @@ class FallingState extends State<Player> {
 
     enter(owner: Player) { super.enter(owner) }
     update(owner: Player) {
-        if (owner.grounded){
+        if (owner.grounded) {
             owner.arialMovement.change("Grounded")
             return
         }
@@ -203,7 +212,7 @@ class FallingState extends State<Player> {
             return
         }
 
-        if (controller.up.isPressed() && owner.coyoteTimeCounter > 0){
+        if (controller.up.isPressed() && owner.coyoteTimeCounter > 0) {
             owner.arialMovement.change("Jumping")
             return
         }
@@ -221,15 +230,15 @@ class WallSlidingState extends State<Player> {
         // if (owner.groundMovement.getCurrentState() == "Running"){
         //     owner.groundMovement.change("Idle")
         // }
-        
+
         this.toWallJump = function () {
-            if (!this.attemptWallJump(owner)){
+            if (!this.attemptWallJump(owner)) {
                 return
             }
 
             owner.arialMovement.change("WallJumping")
         }
-        
+
         controller.up.addEventListener(ControllerButtonEvent.Pressed, this.toWallJump)
     }
     exit(owner: Player) {
@@ -245,7 +254,7 @@ class WallSlidingState extends State<Player> {
             owner.arialMovement.change("Falling")
             return
         }
-        
+
         owner.sprite.setVelocity(owner.sprite.vx, Math.constrain(owner.sprite.vy, 0, owner.wallSlidingSpeed))
         if (owner.facingDirection != owner.againstWall) {
             owner.flip(owner.againstWall)
@@ -348,12 +357,12 @@ class StateMachine<T extends CharacterController> {
     }
 
     update() {
-        if (this.disabled) {return}
+        if (this.disabled) { return }
         this.states[this.current].update(this.owner)
     }
 
     change(newState: string) {
-        if (this.disabled) {return}
+        if (this.disabled) { return }
         this.states[this.current].exit(this.owner)
         this.current = newState
         this.states[this.current].enter(this.owner)
@@ -380,7 +389,8 @@ class StunnedState extends State<Player> {
         super("Stunned")
     }
 
-    enter(owner: Player) { super.enter(owner)
+    enter(owner: Player) {
+        super.enter(owner)
         owner.arialMovement.disabled = true
         owner.groundMovement.disabled = true
         owner.sprite.fx = 100
@@ -389,28 +399,59 @@ class StunnedState extends State<Player> {
     exit(owner: Player) {
         owner.arialMovement.disabled = false
         owner.groundMovement.disabled = false
+        owner.sprite.fx = 50
     }
 
     update(owner: Player) {
-        if (owner.stunnedTime <= 0) {
+        if (owner.stunnedDebounce <= 0) {
             owner.combat.change("Neutral")
         }
     }
 }
 
+class AttackState extends State<Player> {
+    hitbox: Hitbox | null;
+
+    constructor() {
+        super("Attacking")
+    }
+
+    enter(owner: Player) {
+        owner.restrictMovementDir = owner.facingDirection
+        this.hitbox = new Hitbox(
+            owner.sprite,
+            SpriteKind.PlayerHitbox,
+            owner.attackSize,
+            vectors.create(owner.attackSize.x * owner.facingDirection,0)
+        )
+
+        timer.after(100,() => {
+            this.hitbox.destroy()
+            owner.combat.change("Neutral")
+        })
+    }
+
+    exit(owner: Player) {
+        owner.restrictMovementDir = 0
+    }
+    update(owner: Player) {
+        // do nothing for now
+    }
+}
 
 class Player extends CharacterController {
+    // movent
     movementSpeed: number = 100
-
+    restrictMovementDir: number = 0
+    //jumping
     jumpPower: number = 200
     longfall: number = .85
     shortfall: number = 2.55
-
-    wallSlidingSpeed: number = 40
-
     coyoteTime: number = .1 // in seconds
     coyoteTimeCounter: number = 0
-
+    // wallsliding
+    wallSlidingSpeed: number = 40
+    // walljumping
     rightWallLimit: number = 3
     leftWallLimit: number = 3
     lastWallJumped: number = 0
@@ -420,7 +461,10 @@ class Player extends CharacterController {
     wallJumpingTimer: number = 200 // in milliseconds
     wallJumpingPower: Vector2 = vectors.create(80, -310)
 
-    stunnedTime = 2
+    // Combat
+    attackCoolDown: number = 1
+    attackSize: Vector2 = vectors.create(16,16)
+    stunnedDebounce: number = 2
 
     groundMovement: StateMachine<Player>
     arialMovement: StateMachine<Player>
@@ -431,29 +475,30 @@ class Player extends CharacterController {
         this.facingDirection = -1
         this.sprite.setKind(SpriteKind.Player)
 
-        this.groundMovement = new StateMachine(this, "Idle", 
-        [
-            new IdleState(),
-            new RunningState()
-        ])
+        this.groundMovement = new StateMachine(this, "Idle",
+            [
+                new IdleState(),
+                new RunningState()
+            ])
 
         this.arialMovement = new StateMachine(this, "Grounded",
-        [
-            new GroundedState(),
-            new JumpingState(),
-            new FallingState(),
-            new WallSlidingState(),
-            new WallJumpingState(),
-            new WallJumpFallingState()
-        ])
+            [
+                new GroundedState(),
+                new JumpingState(),
+                new FallingState(),
+                new WallSlidingState(),
+                new WallJumpingState(),
+                new WallJumpFallingState()
+            ])
 
         this.combat = new StateMachine(this, "Neutral",
-        [
-            new NeutralState(),
-            new StunnedState()
-        ])
+            [
+                new NeutralState(),
+                new StunnedState(),
+                new AttackState()
+            ])
 
-        game.onUpdate(function(){
+        game.onUpdate(function () {
             this.groundMovement.update()
             this.arialMovement.update()
             this.combat.update()
@@ -464,7 +509,7 @@ class Player extends CharacterController {
 
     dealDamage(damage: number, stunTime: number, knockBack?: Vector2) {
         // damge does nothing for now
-        this.stunnedTime = stunTime
+        this.stunnedDebounce = stunTime
         this.combat.change("Stunned")
         this.physics.force(knockBack)
     }
@@ -482,6 +527,6 @@ class Player extends CharacterController {
     debounce() {
         this.wallJumpingDebounce -= control.eventContext().deltaTime
         this.coyoteTimeCounter -= control.eventContext().deltaTime
-        this.stunnedTime -= control.eventContext().deltaTime
+        this.stunnedDebounce -= control.eventContext().deltaTime
     }
 }
