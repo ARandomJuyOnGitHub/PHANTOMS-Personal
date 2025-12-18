@@ -1,14 +1,4 @@
-
-
-let playerSprite = sprites.create(assets.image`Normal Enemy`)
-scene.cameraFollowSprite(playerSprite)
-
-let player = new Player(playerSprite)
-
-tiles.setCurrentTilemap(tilemap`Combat Testing`)
-tiles.placeOnRandomTile(playerSprite, assets.tile`Start`)
-tileUtil.replaceAllTiles(assets.tile`Start`, assets.tile`transparency16`)
-
+GameManger.spawnPlayer()
 GameManger.spawnEnemy(GameManger.EnemyType.Basic)
 
 function pillars_background() {

@@ -1,6 +1,7 @@
 namespace SpriteKind {
     export const EnemyHitbox = SpriteKind.create()
     export const PlayerHitbox = SpriteKind.create()
+    export const PlayerPogoHitbox = SpriteKind.create()
 }
 
 // invisible spreites dont collide. will most likely will have
@@ -14,7 +15,7 @@ class Hitbox {
     debounce: number = -1
     knockBackMagnitude?: number;
     knockBackDirection?: Vector2;// is only used if direction is defined
-    visible: boolean = false
+    invisible: boolean = true
     enabled: boolean = true
 
     constructor(parent: Sprite, kind: number, dimensions: Vector2, offset?: Vector2, magnitude?: number, direction?: Vector2, debounce?: number, visible?: boolean) {
@@ -38,13 +39,13 @@ class Hitbox {
             this.debounce = debounce  
         }
 
-        if (this.visible) { 
-            this.visible = visible
+        if (this.invisible) { 
+            this.invisible = visible
         }
 
         this.sprite = sprites.create(box, kind)
         this.sprite.data = this
-        this.sprite.setFlag(SpriteFlag.Invisible, this.visible)
+        this.sprite.setFlag(SpriteFlag.Invisible, this.invisible)
 
         anchor.anchorSprite(parent,this.sprite,offset)
         console.log(anchor.isAnchoredTo(parent,this.sprite))
@@ -69,7 +70,7 @@ class Hitbox {
 }
 
 namespace HitboxHandler{
-    export function getSpriteData(sprite1: Sprite, sprite2: Sprite): [Player, Hitbox] {
+    export function getSpriteData(sprite1: Sprite, sprite2: Sprite): [Player|Enemy, Hitbox] {
         return [sprite1.data, sprite2.data]
     }
 
@@ -78,23 +79,42 @@ namespace HitboxHandler{
         return vectors.normal(direcionVector)
     }
 
-    export function processCollision(player: Player, hitbox: Hitbox){
-        let direction = hitbox.knockBackDirection
-        if (direction == undefined) {
-            direction = getDirection(player.sprite,hitbox.sprite)
+    function checkHitboxKind(hitbox: Hitbox, kind: number) {
+        return (hitbox.sprite.kind() == kind)
+    }
+
+    export function detectCollision(sprite: Sprite, otherSprite: Sprite) {
+        let entities: [Player | Enemy, Hitbox] = HitboxHandler.getSpriteData(sprite, otherSprite)
+        let entity: Player | Enemy = (entities as any[])[0]
+        let hitbox: Hitbox = (entities as any[])[1]
+        if (hitbox.enabled) {
+            hitbox.reset()
+            processCollision(entity, hitbox)
+        }
+    }
+
+    function processCollision(entity: Player | Enemy, hitbox: Hitbox){
+        if (entity instanceof Player) {
+            let direction = hitbox.knockBackDirection
+            if (direction == null) {
+                direction = getDirection(entity.sprite,hitbox.sprite)
+            }
+
+            entity.dealDamage(0, 1, vectors.multiply(direction, hitbox.knockBackMagnitude))
         }
 
-        player.dealDamage(0, 5, vectors.multiply(direction, hitbox.knockBackMagnitude))
+        if (checkHitboxKind(hitbox,SpriteKind.PlayerPogoHitbox)) {
+            let player = GameManger.player
+            player.launch(200)
+        }
     }
 }
 
 sprites.onOverlap(SpriteKind.Player, SpriteKind.EnemyHitbox, function(sprite: Sprite, otherSprite: Sprite) {
-    let entities: [Player, Hitbox] = HitboxHandler.getSpriteData(sprite, otherSprite)
-    let player: Player = (entities as any[])[0]
-    let hitbox: Hitbox = (entities as any[])[1]
-    if (hitbox.enabled) {
-        hitbox.reset()
-        HitboxHandler.processCollision(player, hitbox)
-    }
+    HitboxHandler.detectCollision(sprite,otherSprite)
 })
 
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.PlayerPogoHitbox, function (sprite: Sprite, otherSprite: Sprite) {
+    HitboxHandler.detectCollision(sprite, otherSprite)
+    console.log("yay")
+})

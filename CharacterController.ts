@@ -130,11 +130,11 @@ class GroundedState extends State<Player> {
         owner.leftWallLimit = 3
 
         this.toJump = function () {
-            if (owner.combat.getCurrentState() == "Attacking") { return }
+            if (owner.combat.getCurrentState() == "Attacking" || owner.combat.getCurrentState() == "Stunned") { return }
             owner.arialMovement.change("Jumping")
         }
         this.toAttack = function () {
-            if (owner.combat.getCurrentState() == "Attacking") { return }
+            if (owner.combat.getCurrentState() == "Attacking" || owner.combat.getCurrentState() == "Stunned" || owner.attackDebounce > 0) { return }
             owner.combat.change("Attacking")
         }
 
@@ -160,11 +160,24 @@ class JumpingState extends State<Player> {
         super("Jumping")
     }
 
+    private toAirAttack: () => void
+
     enter(owner: Player) {
         super.enter(owner)
+        
 
         owner.coyoteTimeCounter = 0
         this.jump(owner)
+
+        this.toAirAttack = function () {
+            if (owner.combat.getCurrentState() == "Attacking" || owner.combat.getCurrentState() == "Stunned" || owner.attackDebounce > 0) { return }
+            owner.combat.change("AirStrike")
+        }
+        controller.A.addEventListener(ControllerButtonEvent.Pressed, this.toAirAttack)
+    }
+
+    exit(owner: Player) {
+        controller.A.removeEventListener(ControllerButtonEvent.Pressed, this.toAirAttack)
     }
     update(owner: Player) {
         if (owner.grounded) {
@@ -195,12 +208,68 @@ class JumpingState extends State<Player> {
     }
 }
 
+class LaunchState extends State<Player> {
+    constructor() {
+        super("Launching")
+    }
+
+    private toAirAttack: () => void
+
+    enter(owner: Player) {
+        super.enter(owner)
+
+        this.launch(owner)
+
+        this.toAirAttack = function () {
+            if (owner.combat.getCurrentState() == "Attacking" || owner.combat.getCurrentState() == "Stunned" || owner.attackDebounce > 0) { return }
+            owner.combat.change("AirStrike")
+        }
+        controller.A.addEventListener(ControllerButtonEvent.Pressed, this.toAirAttack)
+    }
+
+    exit(owner: Player) {
+        controller.A.removeEventListener(ControllerButtonEvent.Pressed, this.toAirAttack)
+    }
+    update(owner: Player) {
+        if (owner.grounded) {
+            owner.arialMovement.change("Grounded")
+            return
+        }
+
+        if (owner.isWalled()) {
+            owner.arialMovement.change("WallSliding")
+            return
+        }
+
+        if (owner.sprite.vy >= 0) {
+            owner.arialMovement.change("Falling")
+            return
+        }
+    }
+
+    private launch(owner: Player) {
+        owner.physics.force(vectors.create(0, -owner.launchPower))
+        owner.launchPower = 0
+    }
+}
+
 class FallingState extends State<Player> {
     constructor() {
         super("Falling")
     }
 
-    enter(owner: Player) { super.enter(owner) }
+    private toAirAttack: () => void
+
+    enter(owner: Player) { super.enter(owner)
+        this.toAirAttack = function () {
+            if (owner.combat.getCurrentState() == "Attacking" || owner.combat.getCurrentState() == "Stunned" || owner.attackDebounce > 0) { return }
+            owner.combat.change("AirStrike")
+        }
+        controller.A.addEventListener(ControllerButtonEvent.Pressed, this.toAirAttack)
+    }
+    exit(owner: Player) {
+        controller.A.removeEventListener(ControllerButtonEvent.Pressed, this.toAirAttack)
+    }
     update(owner: Player) {
         if (owner.grounded) {
             owner.arialMovement.change("Grounded")
@@ -433,6 +502,48 @@ class AttackState extends State<Player> {
 
     exit(owner: Player) {
         owner.restrictMovementDir = 0
+        owner.attackDebounce = owner.attackCoolDown
+    }
+    update(owner: Player) {
+        // do nothing for now
+    }
+}
+
+class AirAttackState extends State<Player> {
+    hitbox: Hitbox | null;
+
+    constructor() {
+        super("AirStrike")
+    }
+
+    enter(owner: Player) {
+        owner.restrictMovementDir = owner.facingDirection
+        
+        if (controller.down.isPressed()) {
+            this.hitbox = new Hitbox(
+                owner.sprite,
+                SpriteKind.PlayerPogoHitbox,
+                vectors.add(owner.attackSize, vectors.create(5,5)),
+                vectors.create(0, owner.attackSize.y)
+            )
+        } else {
+            this.hitbox = new Hitbox(
+                owner.sprite,
+                SpriteKind.PlayerHitbox,
+                owner.attackSize,
+                vectors.create(owner.attackSize.x * owner.facingDirection, 0)
+            )
+        }
+
+        timer.after(100, () => {
+            this.hitbox.destroy()
+            owner.combat.change("Neutral")
+        })
+    }
+
+    exit(owner: Player) {
+        owner.restrictMovementDir = 0
+        owner.attackDebounce = owner.attackCoolDown
     }
     update(owner: Player) {
         // do nothing for now
@@ -444,6 +555,7 @@ class Player extends CharacterController {
     movementSpeed: number = 100
     restrictMovementDir: number = 0
     //jumping
+    launchPower: number; // for upward forces other than jumping
     jumpPower: number = 200
     longfall: number = .85
     shortfall: number = 2.55
@@ -462,9 +574,10 @@ class Player extends CharacterController {
     wallJumpingPower: Vector2 = vectors.create(80, -310)
 
     // Combat
-    attackCoolDown: number = 1
+    attackCoolDown: number = .2 // in seconds
+    attackDebounce: number = 0
     attackSize: Vector2 = vectors.create(16,16)
-    stunnedDebounce: number = 2
+    stunnedDebounce: number;
 
     groundMovement: StateMachine<Player>
     arialMovement: StateMachine<Player>
@@ -485,6 +598,7 @@ class Player extends CharacterController {
             [
                 new GroundedState(),
                 new JumpingState(),
+                new LaunchState(),
                 new FallingState(),
                 new WallSlidingState(),
                 new WallJumpingState(),
@@ -495,7 +609,8 @@ class Player extends CharacterController {
             [
                 new NeutralState(),
                 new StunnedState(),
-                new AttackState()
+                new AttackState(),
+                new AirAttackState()
             ])
 
         game.onUpdate(function () {
@@ -514,6 +629,11 @@ class Player extends CharacterController {
         this.physics.force(knockBack)
     }
 
+    launch(force: number) {
+        this.launchPower = force
+        this.arialMovement.change("Launching")
+    }
+
     isWalled() {
         if (this.againstWall == 1 && controller.right.isPressed()) {
             return true
@@ -528,5 +648,6 @@ class Player extends CharacterController {
         this.wallJumpingDebounce -= control.eventContext().deltaTime
         this.coyoteTimeCounter -= control.eventContext().deltaTime
         this.stunnedDebounce -= control.eventContext().deltaTime
+        this.attackDebounce -= control.eventContext().deltaTime
     }
 }

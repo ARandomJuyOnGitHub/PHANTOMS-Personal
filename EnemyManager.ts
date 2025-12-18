@@ -6,6 +6,7 @@ abstract class Enemy extends CharacterController {
     hitlol: Hitbox
     constructor(sprite: Sprite){
         super(sprite)
+        sprite.setKind(SpriteKind.Enemy)
         this.hitlol = new Hitbox(
             this.sprite,
             SpriteKind.EnemyHitbox,
