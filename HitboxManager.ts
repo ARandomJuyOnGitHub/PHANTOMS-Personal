@@ -22,7 +22,7 @@ class Hitbox {
         this.parent = parent
         let box = image.create(dimensions.x, dimensions.y)
         box.fill(6)
-        
+
         if (magnitude) {
             this.knockBackMagnitude = magnitude
         }
@@ -32,23 +32,22 @@ class Hitbox {
         }
 
         if (!offset) {
-            offset = vectors.create() 
+            offset = vectors.create()
         }
 
         if (debounce) {
-            this.debounce = debounce  
+            this.debounce = debounce
         }
 
-        if (this.invisible) { 
-            this.invisible = visible
-        }
+        // if (this.invisible) { 
+        //     this.invisible = visible
+        // }
 
         this.sprite = sprites.create(box, kind)
         this.sprite.data = this
         this.sprite.setFlag(SpriteFlag.Invisible, this.invisible)
 
-        anchor.anchorSprite(parent,this.sprite,offset)
-        console.log(anchor.isAnchoredTo(parent,this.sprite))
+        anchor.anchorSprite(parent, this.sprite, offset)
     }
 
     reset() {
@@ -64,17 +63,17 @@ class Hitbox {
 
     destroy() {
         this.active = false
-        anchor.unanchorSprite(this.parent,this.sprite)
+        anchor.unanchorSprite(this.parent, this.sprite)
         sprites.destroy(this.sprite)
     }
 }
 
-namespace HitboxHandler{
-    export function getSpriteData(sprite1: Sprite, sprite2: Sprite): [Player|Enemy, Hitbox] {
+namespace HitboxHandler {
+    export function getSpriteData(sprite1: Sprite, sprite2: Sprite): [Player | Enemy, Hitbox] {
         return [sprite1.data, sprite2.data]
     }
 
-    function getDirection(sprite1: Sprite , sprite2: Sprite) {
+    function getDirection(sprite1: Sprite, sprite2: Sprite) {
         let direcionVector: Vector2 = vectors.subtract(vectors.spritePropertyToVector(sprite1, SpriteProperties.Position), vectors.spritePropertyToVector(sprite2, SpriteProperties.Position))
         return vectors.normal(direcionVector)
     }
@@ -93,25 +92,33 @@ namespace HitboxHandler{
         }
     }
 
-    function processCollision(entity: Player | Enemy, hitbox: Hitbox){
+    function processCollision(entity: Player | Enemy, hitbox: Hitbox) {
         if (entity instanceof Player) {
             let direction = hitbox.knockBackDirection
             if (direction == null) {
-                direction = getDirection(entity.sprite,hitbox.sprite)
+                direction = getDirection(entity.sprite, hitbox.sprite)
             }
 
             entity.dealDamage(0, 1, vectors.multiply(direction, hitbox.knockBackMagnitude))
         }
 
-        if (checkHitboxKind(hitbox,SpriteKind.PlayerPogoHitbox)) {
+        if (checkHitboxKind(hitbox, SpriteKind.PlayerPogoHitbox)) {
             let player = GameManger.player
             player.launch(200)
+        }
+
+        if (checkHitboxKind(hitbox, SpriteKind.PlayerHitbox)) {
+            console.log("hit")
         }
     }
 }
 
-sprites.onOverlap(SpriteKind.Player, SpriteKind.EnemyHitbox, function(sprite: Sprite, otherSprite: Sprite) {
-    HitboxHandler.detectCollision(sprite,otherSprite)
+sprites.onOverlap(SpriteKind.Player, SpriteKind.EnemyHitbox, function (sprite: Sprite, otherSprite: Sprite) {
+    HitboxHandler.detectCollision(sprite, otherSprite)
+})
+
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.PlayerHitbox, function (sprite: Sprite, otherSprite: Sprite) {
+    HitboxHandler.detectCollision(sprite, otherSprite)
 })
 
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.PlayerPogoHitbox, function (sprite: Sprite, otherSprite: Sprite) {

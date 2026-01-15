@@ -30,7 +30,12 @@ abstract class CharacterController {
         })
     }
 
-    flip(newDirection: number) {
+    flip(newDirection?: number) {
+        if (newDirection == null) {
+            this.sprite.image.flipX()
+            this.facingDirection = newDirection
+        }
+
         if (newDirection !== 0 && newDirection !== this.facingDirection) {
             this.sprite.image.flipX()
             this.facingDirection = newDirection
@@ -99,7 +104,7 @@ class RunningState extends State<Player> {
         }
 
         let trueMovementUnbound = rightMovement + leftMovement
-        let trueMovement = Math.clamp(-1,1, trueMovementUnbound)
+        let trueMovement = Math.clamp(-1, 1, trueMovementUnbound)
 
         if (!(owner.arialMovement.getCurrentState() == "WallJumping")) {
             owner.flip(trueMovement)
@@ -139,7 +144,7 @@ class GroundedState extends State<Player> {
         }
 
         controller.up.addEventListener(ControllerButtonEvent.Pressed, this.toJump)
-        controller.A.addEventListener(ControllerButtonEvent.Pressed,this.toAttack)
+        controller.A.addEventListener(ControllerButtonEvent.Pressed, this.toAttack)
     }
     exit(owner: Player) {
         controller.up.removeEventListener(ControllerButtonEvent.Pressed, this.toJump)
@@ -164,7 +169,7 @@ class JumpingState extends State<Player> {
 
     enter(owner: Player) {
         super.enter(owner)
-        
+
 
         owner.coyoteTimeCounter = 0
         this.jump(owner)
@@ -260,7 +265,8 @@ class FallingState extends State<Player> {
 
     private toAirAttack: () => void
 
-    enter(owner: Player) { super.enter(owner)
+    enter(owner: Player) {
+        super.enter(owner)
         this.toAirAttack = function () {
             if (owner.combat.getCurrentState() == "Attacking" || owner.combat.getCurrentState() == "Stunned" || owner.attackDebounce > 0) { return }
             owner.combat.change("AirStrike")
@@ -491,10 +497,10 @@ class AttackState extends State<Player> {
             owner.sprite,
             SpriteKind.PlayerHitbox,
             owner.attackSize,
-            vectors.create(owner.attackSize.x * owner.facingDirection,0)
+            vectors.create(owner.attackSize.x * owner.facingDirection, 0)
         )
 
-        timer.after(100,() => {
+        timer.after(100, () => {
             this.hitbox.destroy()
             owner.combat.change("Neutral")
         })
@@ -518,12 +524,12 @@ class AirAttackState extends State<Player> {
 
     enter(owner: Player) {
         owner.restrictMovementDir = owner.facingDirection
-        
+
         if (controller.down.isPressed()) {
             this.hitbox = new Hitbox(
                 owner.sprite,
                 SpriteKind.PlayerPogoHitbox,
-                vectors.add(owner.attackSize, vectors.create(5,5)),
+                owner.arialAttackSize,
                 vectors.create(0, owner.attackSize.y)
             )
         } else {
@@ -576,7 +582,8 @@ class Player extends CharacterController {
     // Combat
     attackCoolDown: number = .2 // in seconds
     attackDebounce: number = 0
-    attackSize: Vector2 = vectors.create(16,16)
+    attackSize: Vector2 = vectors.create(16, 16)
+    arialAttackSize: Vector2 = vectors.create(16, 8)
     stunnedDebounce: number;
 
     groundMovement: StateMachine<Player>
